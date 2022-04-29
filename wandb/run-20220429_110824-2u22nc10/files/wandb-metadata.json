@@ -1,0 +1,24 @@
+{
+    "os": "Linux-5.13.0-40-generic-x86_64-with-glibc2.29",
+    "python": "3.8.10",
+    "heartbeatAt": "2022-04-29T05:38:27.583109",
+    "startedAt": "2022-04-29T05:38:24.852215",
+    "docker": null,
+    "gpu": "NVIDIA GeForce MX130",
+    "gpu_count": 1,
+    "cpu_count": 8,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "/home/samurai/Code/nlp/bert_feature_extraction_classification/main.py",
+    "codePath": "bert_feature_extraction_classification/main.py",
+    "git": {
+        "remote": "https://github.com/theUnrealSamurai/nlp",
+        "commit": "54400208d153fb0662c6e1583e63554092159d76"
+    },
+    "email": "roshan.saravanan001@gmail.com",
+    "root": "/home/samurai/Code/nlp",
+    "host": "ace",
+    "username": "samurai",
+    "executable": "/usr/bin/python3"
+}

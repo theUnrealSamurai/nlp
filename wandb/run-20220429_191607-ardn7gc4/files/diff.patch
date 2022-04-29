@@ -1,0 +1,131 @@
+diff --git a/bert_feature_extraction_classification/extract_features.py b/bert_feature_extraction_classification/extract_features.py
+index 7dd07aa..c512fb6 100644
+--- a/bert_feature_extraction_classification/extract_features.py
++++ b/bert_feature_extraction_classification/extract_features.py
+@@ -1,4 +1,3 @@
+-from pickletools import float8
+ import torch
+ import numpy as np
+ from torch.utils.data import Dataset, DataLoader
+@@ -19,8 +18,8 @@ class ClassificationDataset(Dataset):
+         label = self.df[idx][1]
+ #         label = F.one_hot(torch.tensor([cfg.classes[label]]), num_classes=cfg.n_classes)
+         # converting the labels to one hot array. faster than the above line.
+-        label = torch.tensor(np.eye(self.cfg.n_classes)[self.cfg.classes[label]])
+-        return {"text": text, "label": label}
++        # label = torch.tensor(np.eye(self.cfg.n_classes)[self.cfg.classes[label]])
++        return {"text": text, "label": torch.tensor(label)}
+ 
+ 
+ 
+diff --git a/bert_feature_extraction_classification/main.py b/bert_feature_extraction_classification/main.py
+index 28393e4..247921e 100644
+--- a/bert_feature_extraction_classification/main.py
++++ b/bert_feature_extraction_classification/main.py
+@@ -1,8 +1,10 @@
+ import os
+ import torch
++import wandb
+ import pandas as pd
+ import numpy as np
+ import torch.nn as nn
++import torch.nn.functional as F
+ from train import train, validate  
+ from torch.utils.data import DataLoader, TensorDataset
+ from extract_features import extract_features
+@@ -24,15 +26,13 @@ class ClassificationModel(nn.Module):
+     def __init__(self, inp, hidden, output):
+         super(ClassificationModel, self).__init__()
+         self.linear = torch.nn.Linear(inp, hidden)
+-        self.relu = torch.nn.ReLU()
+         self.linear2 = torch.nn.Linear(hidden, output)
+-        self.softmax = torch.nn.Softmax(dim=1)
+         
+     def forward(self, x):
+         x = self.linear(x)
+-        x = self.relu(x)
++        x = F.relu(x)
+         x = self.linear2(x)
+-        x = self.softmax(x)
++        x = F.softmax(x)
+         return x
+ 
+ 
+@@ -40,10 +40,12 @@ if __name__ == '__main__':
+ 
+     set_seed(42)
+ 
+-    debug = False
++    debug = True
+     logging.set_verbosity_warning()
+     logging.set_verbosity_error()
+     
++    wandb.init(project='nlp', entity='theunrealsamurai', name='setting_wandb_test2')
++
+     train_df = pd.read_csv("data/train.csv", names=["Text", "Labels"])
+     test_df = pd.read_csv("data/test.csv",  names=["Text", "Labels"])
+     val_df = pd.read_csv("data/val.csv", names = ["Text", "Labels"])
+@@ -52,16 +54,16 @@ if __name__ == '__main__':
+         train_df = train_df[:250]    
+         test_df = test_df[:250]
+         val_df = val_df[:250]
++        cfg.epochs = 2
+ 
+     train_df = extract_features(train_df, features_config)
+     val_df = extract_features(val_df, features_config)
+-    # test_df = extract_features(test_df, features_config)
++    test_df = extract_features(test_df, features_config)
+ 
+ 
+     train_loader = DataLoader(TensorDataset(train_df['features'], train_df['labels']))
+     val_loader = DataLoader(TensorDataset(val_df['features'], val_df['labels']))
+-    # test_loader = DataLoader(TensorDataset(test_df['features'], test_df['labels']))
++    test_loader = DataLoader(TensorDataset(test_df['features'], test_df['labels']))
+ 
+     model = ClassificationModel(cfg.inp, cfg.hidden, cfg.n_classes)
+     model = train(model, train_loader, val_loader)
+-
+diff --git a/bert_feature_extraction_classification/train.py b/bert_feature_extraction_classification/train.py
+index dcafe59..2a10543 100644
+--- a/bert_feature_extraction_classification/train.py
++++ b/bert_feature_extraction_classification/train.py
+@@ -1,9 +1,9 @@
+ import torch
++import wandb
+ from cfg import cfg
+ 
+ 
+-def validate(model, valid_loader):
+-    model.to(cfg.device)
++def validate(model, valid_loader, name='validation'):
+     model.eval()
+ 
+     with torch.no_grad():
+@@ -11,9 +11,9 @@ def validate(model, valid_loader):
+             features, labels = tuple(t.to(cfg.device) for t in batch)
+             outputs = model(features)
+             loss = cfg.criterion(outputs, labels)
+-            accuracy = (outputs.argmax(dim=1) ==
+-                        labels.argmax(dim=1)).float().mean()
+-    print(f"Loss = {loss}  \t | Accuracy = {accuracy}")
++            accuracy = (outputs.argmax(dim=1) == labels).float().mean()
++    wandb.log({name+'_loss': loss/len(valid_loader), name+'_accuracy': accuracy/len(valid_loader)})
++    print(f"{name}_loss = {loss/len(valid_loader)}  \t |  {name}_accuracy = {accuracy/len(valid_loader)}")
+ 
+ 
+ def train(model, train_loader, valid_loader):
+@@ -32,9 +32,11 @@ def train(model, train_loader, valid_loader):
+             loss.backward()
+             optimizer.step()
+             net_loss += loss
+-            net_accuracy += (outputs.argmax(dim=1) == labels.argmax(dim=1)).float().mean()
+-        print(f"Loss = {net_loss/len(train_loader)}  \t | Accuracy = {net_accuracy/len(train_loader)}")
+-
++            accuracy = (outputs.argmax(dim=1) == labels).float().mean()
++            net_accuracy += accuracy
++        wandb.log({'training_loss': net_loss/len(train_loader),
++                  'training_accuracy': net_accuracy/len(train_loader)})
++        print(f"TrainingLoss = {net_loss/len(train_loader)}  \t | TrainingAccuracy = {net_accuracy/len(train_loader)}")
+         validate(model, valid_loader)
+     return model
+ 

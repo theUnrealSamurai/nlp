@@ -1,0 +1,51 @@
+diff --git a/bert_feature_extraction_classification/extract_features.py b/bert_feature_extraction_classification/extract_features.py
+index 7dd07aa..a6370da 100644
+--- a/bert_feature_extraction_classification/extract_features.py
++++ b/bert_feature_extraction_classification/extract_features.py
+@@ -1,4 +1,3 @@
+-from pickletools import float8
+ import torch
+ import numpy as np
+ from torch.utils.data import Dataset, DataLoader
+diff --git a/bert_feature_extraction_classification/main.py b/bert_feature_extraction_classification/main.py
+index 28393e4..94f7e99 100644
+--- a/bert_feature_extraction_classification/main.py
++++ b/bert_feature_extraction_classification/main.py
+@@ -1,5 +1,6 @@
+ import os
+ import torch
++import wandb
+ import pandas as pd
+ import numpy as np
+ import torch.nn as nn
+@@ -44,6 +45,9 @@ if __name__ == '__main__':
+     logging.set_verbosity_warning()
+     logging.set_verbosity_error()
+     
++    wandb.init(project='nlp', entity='theunrealsamurai')
++
++
+     train_df = pd.read_csv("data/train.csv", names=["Text", "Labels"])
+     test_df = pd.read_csv("data/test.csv",  names=["Text", "Labels"])
+     val_df = pd.read_csv("data/val.csv", names = ["Text", "Labels"])
+diff --git a/bert_feature_extraction_classification/train.py b/bert_feature_extraction_classification/train.py
+index dcafe59..83299c4 100644
+--- a/bert_feature_extraction_classification/train.py
++++ b/bert_feature_extraction_classification/train.py
+@@ -1,4 +1,5 @@
+ import torch
++import wandb
+ from cfg import cfg
+ 
+ 
+@@ -32,7 +33,9 @@ def train(model, train_loader, valid_loader):
+             loss.backward()
+             optimizer.step()
+             net_loss += loss
+-            net_accuracy += (outputs.argmax(dim=1) == labels.argmax(dim=1)).float().mean()
++            accuracy = (outputs.argmax(dim=1) == labels.argmax(dim=1)).float().mean()
++            net_accuracy += accuracy
++            wandb.log({'loss': loss, 'accuracy': accuracy})
+         print(f"Loss = {net_loss/len(train_loader)}  \t | Accuracy = {net_accuracy/len(train_loader)}")
+ 
+         validate(model, valid_loader)

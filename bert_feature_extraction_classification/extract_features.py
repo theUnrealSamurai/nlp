@@ -1,4 +1,3 @@
-from pickletools import float8
 import torch
 import numpy as np
 from torch.utils.data import Dataset, DataLoader
@@ -26,9 +25,9 @@ class ClassificationDataset(Dataset):
 
 def extract_features(df, cfg):
     dset = ClassificationDataset(df, cfg)
-    dataloader = DataLoader(dset, batch_size=cfg.batch_size, shuffle=True, num_workers=cfg.num_workers)
-    tokenizer = AutoTokenizer.from_pretrained(cfg.model_name)
-    model = AutoModel.from_pretrained(cfg.model_name)
+    dataloader = DataLoader(dset, batch_size=cfg.nlp_batch_size, shuffle=True, num_workers=cfg.num_workers)
+    tokenizer = AutoTokenizer.from_pretrained(cfg.nlp_model)
+    model = AutoModel.from_pretrained(cfg.nlp_model)
 
     features, labels = [], []
     model.to(cfg.device)
